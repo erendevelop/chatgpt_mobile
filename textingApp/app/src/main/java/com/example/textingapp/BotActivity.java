@@ -116,7 +116,7 @@ public class BotActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         RequestBody body = RequestBody.create(jsonBody.toString(), JSON);
-        Request req = new Request.Builder().url("https://api.openai.com/v1/completions").header("Authorization", "Bearer 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").post(body).build();
+        Request req = new Request.Builder().url("https://api.openai.com/v1/completions").header("Authorization", "Bearer your token here").post(body).build();
         client.newCall(req).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
