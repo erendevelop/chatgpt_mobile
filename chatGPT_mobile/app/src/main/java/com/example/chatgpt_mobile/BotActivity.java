@@ -10,6 +10,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,7 +22,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -28,6 +35,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class BotActivity extends AppCompatActivity {
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
+    Integer botMessageCount = 0;
+    Integer userMessageCount = 0;
     LinearLayout botMessageBackground;
     RecyclerView recyclerView;
     EditText messageEditText;
@@ -35,6 +45,10 @@ public class BotActivity extends AppCompatActivity {
     List<Message> messageList;
     MessageAdapter messageAdapter;
     TextView typingTextView;
+
+    Map<String, Object> userBody = new HashMap<>();
+    Map<String, Object> botBody = new HashMap<>();
+    Map<String, Object> body = new HashMap<>();
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     OkHttpClient client = new OkHttpClient();
 
@@ -44,6 +58,39 @@ public class BotActivity extends AppCompatActivity {
         setContentView(R.layout.activity_bot);
         define();
         onClick();
+    }
+    public void firebase(String data, String sentBy){
+        if(sentBy.equals(Message.SENT_BY_ME)){
+            userBody.put(userMessageCount.toString(), data);
+            body.put("user", userBody);
+            db.collection("chats").document("B9YyhakJ4YbG46IJsUig").update(body).
+                    addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void unused) {
+                            Toast.makeText(BotActivity.this, "Saved successfully to Firebase", Toast.LENGTH_SHORT).show();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(BotActivity.this, "Failed due to "+e, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        } else{
+            botBody.put(userMessageCount.toString(), data);
+            body.put("bot", botBody);
+            db.collection("chats").document("B9YyhakJ4YbG46IJsUig").update(body).
+                    addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void unused) {
+                            Toast.makeText(BotActivity.this, "Saved successfully to Firebase", Toast.LENGTH_SHORT).show();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(BotActivity.this, "Failed due to "+e, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
     }
     public void define(){
         recyclerView = findViewById(R.id.recyclerView);
@@ -61,8 +108,15 @@ public class BotActivity extends AppCompatActivity {
     public void onClick(){
         sendButton.setOnClickListener(e -> {
             String question = messageEditText.getText().toString().trim();
-            addToChat(question, Message.SENT_BY_ME);
-            callAPI(question);
+            if(question.isEmpty()){
+                Toast.makeText(this, "Please insert a question", Toast.LENGTH_SHORT).show();
+            }
+            else{
+                userMessageCount++;
+                addToChat(question, Message.SENT_BY_ME);
+                firebase(question, Message.SENT_BY_ME);
+                callAPI(question);
+            }
         });
     }
     public void addToChat(String message, String sentBy){
@@ -95,6 +149,8 @@ public class BotActivity extends AppCompatActivity {
         });
     }
     public void addResponse(String response){
+        botMessageCount++;
+        firebase(response, Message.SENT_BY_BOT);
         addToChat(response, Message.SENT_BY_BOT);
     }
     void callAPI(String sentence){
@@ -116,7 +172,7 @@ public class BotActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         RequestBody body = RequestBody.create(jsonBody.toString(), JSON);
-        Request req = new Request.Builder().url("https://api.openai.com/v1/completions").header("Authorization", "Bearer token").post(body).build();
+        Request req = new Request.Builder().url("https://api.openai.com/v1/completions").header("Authorization", "Bearer -").post(body).build();
         client.newCall(req).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {

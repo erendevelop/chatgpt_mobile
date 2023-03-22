@@ -19,7 +19,7 @@ public class MainPageActivity extends AppCompatActivity {
     }
     private void onClick(){
         useGPTButton.setOnClickListener(e -> {
-            Toast.makeText(this, "Routed to the chat page.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Routed to the chat page.", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(this, BotActivity.class);
             startActivity(intent);
         });
